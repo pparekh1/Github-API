@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Web Application using Github API</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        font-size: 20px;
+        line-height: 1.6;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      }
+      body {
+        padding-bottom: 200px;
+      }
+      header {
+        margin: 1rem 3rem 3rem 3rem;
+      }
+      header h1 {
+        font-size: 3rem;
+        line-height: 1.2;
+        font-weight: 300;
+        color: #999;
+        text-align: center;
+      }
+      header h2 {
+        font-size: 1.5rem;
+        line-height: 1.2;
+        font-weight: 300;
+        color: cornflowerblue;
+      }
+      main {
+        position: relative;
+        flex-wrap: wrap;
+        width: 90vw; 
+        margin: 3rem 3rem;
+        border: 2px solid #000000;
+        border-radius: 4px;
+        padding: calc(2em + 40px) 1em 1em;
+        background-color: #CACFD2 ;
+      
+      }
+      main > .users-wrpr {
+        display: grid;
+        flex-wrap: wrap;
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+        grid-gap: 1rem;
+        grid-template-rows: auto;
+      }
+
+      @media screen and (max-width:1300px) {
+        main > .users-wrpr {
+        display: grid;
+        flex-wrap: wrap;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        grid-gap: 1rem;
+        grid-template-rows: auto;
+        }
+      }
+
+      @media screen and (max-width:1000px) {
+        main > .users-wrpr {
+        display: grid;
+        flex-wrap: wrap;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-gap: 1rem;
+        grid-template-rows: auto;
+        }
+      }
+
+      @media screen and (max-width:757px) {
+        main > .users-wrpr {
+          display: grid;
+        flex-wrap: wrap;
+        grid-template-columns: 1fr 1fr;
+        grid-gap: 1rem;
+        grid-template-rows: auto;
+        }
+      }
+
+      @media screen and (max-width:500px) {
+        main > .users-wrpr {
+          display: grid;
+        flex-wrap: wrap;
+        grid-template-columns: 1fr;
+        grid-gap: 1rem;
+        grid-template-rows: auto;
+        }
+      }
+
+
+      main > .sch-wrpr {
+        margin: 1em;
+        left: 0;
+        top: 0;
+        /* width: 20%; */
+      }
+      main > .sch-wrpr > input {
+        width: calc(100% - 2em);
+        padding: 5px 10px;
+
+      }
+      main figcaption {
+        width: calc(100% - 2em);
+        font-size: 1rem;
+        font-family: inherit;
+        /* width: 20%; */
+      }
+      main img {
+        width: calc(100% - 2em);
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+      }
+      footer {
+        background-color: #aaa;
+        color: #333;
+        font-size: 1rem;
+        font-weight: 300;
+        padding: 1rem 3rem 3rem 3rem;
+        margin-top: 0;
+      }
+
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Web Application using Github API</h1>
+    </header>
+
+    <main>
+      <div class="sch-wrpr">
+        <input
+          autofocus
+          placeholder="Type to search a user"
+          type="text"
+          name="searchUserVal"
+          id="search-user"
+          oninput="searchUser(this.value || null)"
+        />
+      </div>
+      <div class="users-wrpr" id="users-wrpr">
+        
+      </div>
+    </main>
+    <footer>
+      <p align="center">Contact : Pranjal Parekh</p> 
+      <p align="center">Email : pranjalparekh7@gmail.com</p>
+    </footer>
+    <script type="text/javascript" src="getresponse.js"></script>
+    <script type="text/javascript" src="getFollower.js"></script>
+
+    <script>
+      var ALL_USERS = [];
+      var isSearching = false;
+      const MAIN = document.getElementById("users-wrpr");
+
+      document.addEventListener("DOMContentLoaded", () => {
+        let options = {
+          root: null,
+          rootMargins: "0px",
+          threshold: 0.5,
+        };
+        const observer = new IntersectionObserver(handleIntersect, options);
+        observer.observe(document.querySelector("footer"));
+
+        //polyfilling
+        String.prototype.regexReplaceAll = function(regexExpr, replaceMent) {
+          let str = this.valueOf();
+          while (str.search(/\s+/) > -1)
+            str = str.replace(/\s+/, '');
+          return str;
+        }
+        String.prototype.equalsIgnoreCaseAndSpace = function(str) {
+          if (str === this.valueOf())
+            return true;
+          if (!str)
+            return false;
+          return str.regexReplaceAll(/\s+/, '').trim() === this.valueOf().regexReplaceAll(/\s+/, '').trim();
+        }
+        String.prototype.containsIgnoreCaseAndSpace = function(str) {
+          if (this.valueOf().indexOf(str) > -1)
+            return true;
+          if (!str)
+            return false;
+          return this.valueOf().regexReplaceAll(/\s+/, '').trim().indexOf(str.regexReplaceAll(/\s+/, '').trim()) > -1;
+        }
+
+      });
+      function handleIntersect(entries) {
+        if (!isSearching && entries[0].isIntersecting) {
+          console.warn("something is intersecting with the viewport");
+          getData();
+        }
+      }
+      function getUrl() {
+        return `https://api.github.com/users?since=${ALL_USERS.length}`;
+      }
+      function getData() {
+        console.log("fetch some JSON data");
+        fetch(getUrl())
+          .then((response) => response.json())
+          .then((data) => {
+            // data.items[].img, data.items[].name
+            if (!data || !data.length)
+              return;
+            ALL_USERS = ALL_USERS.concat(data);
+            data.forEach(createUser);
+          });
+      }
+      function createUser(item) {
+        let fig = document.createElement("figure");
+        let fc = document.createElement("button");
+        let fc1 = document.createElement("button");
+        let f = document.createElement("figcaption");
+        let img = document.createElement("img");
+        let link = document.createElement("a");
+        let link1 = document.createElement("a");
+        img.src = item.avatar_url;
+        img.alt = item.login;
+        fc.value = item.login;
+        fc1.value = "Followers";
+        link.href = "repos.html";
+        link1.href = "followers.html";
+        //link.textContent="Repository Link";
+        fc.onclick = function () {
+          let url = item.repos_url;
+          console.log(url);
+          window.location.href = "repos.html?" + "url=" + url;
+        };
+        fc1.onclick = function () {
+          let url = item.followers_url;
+          console.log(url);
+          window.location.href = "followers.html?" + "url=" + url;
+        };
+        f.textContent = "User : "+item.login;
+        fc.textContent = "Repositories";
+        fc1.textContent = "Followers";
+        fig.appendChild(img);
+        fig.appendChild(f);
+        fig.appendChild(fc);
+        fig.appendChild(fc1);
+        MAIN.appendChild(fig);
+      }
+
+      // User live search
+      // *** USING DEBOUNCING - 500ms ***
+      var searchTimeout = null;
+      function searchUser(value) {
+        if (searchTimeout)
+          clearTimeout(searchTimeout);
+        if (!value || !value.trim()) {
+          isSearching = false;
+          filterAndDisplayUsers(null);
+          return;
+        }
+        isSearching = true;
+        searchTimeout = setTimeout(() => filterAndDisplayUsers(value), 500);
+      }
+      function filterAndDisplayUsers(value) {
+        MAIN.innerHTML = '';
+        let resultUsers = !value ? ALL_USERS :
+          ALL_USERS.filter(user => user.login.containsIgnoreCaseAndSpace(value));
+        resultUsers.forEach(createUser);
+      }
+    </script>
+  </body>
+</html>
